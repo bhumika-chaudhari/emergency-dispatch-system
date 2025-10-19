@@ -1,31 +1,19 @@
-/* Dark Theme for the main window */
+/* Change the default accent color used by the light theme */
 .root {
-    -fx-base: #2b2b2b;
-    -fx-background: #3c3f41;
-    -fx-control-inner-background: #45494a;
+    -fx-accent: #007bff; /* A nice shade of blue */
 }
 
-/* Style the table headers */
+/* Make the table headers stand out more */
 .table-view .column-header {
-    -fx-background-color: #2b2b2b;
-    -fx-font-size: 14px;
-}
-
-/* Style the table rows with alternating colors */
-.table-row-cell:odd {
-    -fx-background-color: #45494a;
-}
-.table-row-cell:even {
-    -fx-background-color: #55585a;
-}
-
-/* Style the buttons */
-.button {
-    -fx-background-color: #007bff;
-    -fx-text-fill: white;
-    -fx-font-size: 14px;
     -fx-font-weight: bold;
+    -fx-font-size: 1.1em;
 }
-.button:hover {
-    -fx-background-color: #0056b3;
+
+/* --- Custom Style for High Priority Rows --- */
+/* This is the style we will apply with Java code */
+.high-priority-row {
+    -fx-background-color: #ffcdd2; /* A light red background */
+}
+.high-priority-row:selected {
+    -fx-background-color: #e57373; /* A darker red when selected */
 }

@@ -1,6 +1,7 @@
 package com.emergency.dao;
 
 import com.emergency.model.ActiveDispatch;
+import com.emergency.model.Incident;
 import com.emergency.model.Unit;
 import com.emergency.util.DatabaseConnector;
 import java.sql.*;
@@ -14,27 +15,53 @@ public class IncidentDAO {
 
     
     public List<ActiveDispatch> getActiveDispatches() {
-        List<ActiveDispatch> dispatches = new ArrayList<>();
-        String sql = "SELECT incident_id, incident_type, location_text FROM vw_ActiveDispatches";
+    List<ActiveDispatch> dispatches = new ArrayList<>();
+    // Updated SQL query to include priority
+    String sql = "SELECT incident_id, incident_type, location_text, priority FROM vw_ActiveDispatches";
 
-        try (Connection conn = DatabaseConnector.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql);
-             ResultSet rs = pstmt.executeQuery()) {
+    try (Connection conn = DatabaseConnector.getConnection();
+         PreparedStatement pstmt = conn.prepareStatement(sql);
+         ResultSet rs = pstmt.executeQuery()) {
 
-            while (rs.next()) {
-                dispatches.add(new ActiveDispatch(
-                    rs.getInt("incident_id"),
-                    rs.getString("incident_type"),
-                    rs.getString("location_text")
-                ));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        while (rs.next()) {
+            // Updated constructor call to include priority
+            dispatches.add(new ActiveDispatch(
+                rs.getInt("incident_id"),
+                rs.getString("incident_type"),
+                rs.getString("location_text"),
+                rs.getString("priority") 
+            ));
         }
-        return dispatches;
+    } catch (SQLException e) {
+        e.printStackTrace();
     }
+    return dispatches;
+}
     // Add this new method inside your IncidentDAO class
+public Incident getIncidentDetailsById(int incidentId) {
+    String sql = "SELECT * FROM Incidents WHERE incident_id = ?";
+    Incident incident = null;
 
+    try (Connection conn = DatabaseConnector.getConnection();
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+        pstmt.setInt(1, incidentId);
+        ResultSet rs = pstmt.executeQuery();
+
+        if (rs.next()) {
+            incident = new Incident();
+            incident.setId(rs.getInt("incident_id"));
+            incident.setType(rs.getString("type"));
+            incident.setDescription(rs.getString("description"));
+            incident.setLocationText(rs.getString("location_text"));
+            incident.setPriority(rs.getString("priority"));
+            incident.setSeverityLevel(rs.getInt("severity_level"));
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+    return incident;
+}
 public int createNewIncident(String firstName, String lastName, String phone, String type, String description, String locationText) {
     String sql = "{CALL CreateNewIncident(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}";
     int newIncidentId = -1; // Default value if something goes wrong
