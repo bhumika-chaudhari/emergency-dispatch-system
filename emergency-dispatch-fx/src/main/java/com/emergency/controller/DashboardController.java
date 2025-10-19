@@ -19,7 +19,8 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView;
 import java.io.IOException;
 import java.util.List;
 
@@ -66,6 +67,9 @@ public class DashboardController {
         );
         poller.setCycleCount(Timeline.INDEFINITE);
         poller.play();
+        FontAwesomeIconView plusIcon = new FontAwesomeIconView(FontAwesomeIcon.PLUS_SQUARE);
+        plusIcon.setFill(javafx.scene.paint.Color.WHITE);
+        newIncidentButton.setGraphic(plusIcon);
     }
     
     // --- NEW METHOD for the Dispatch button ---
