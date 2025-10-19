@@ -1,9 +1,12 @@
 package com.emergency.controller;
 
 import com.emergency.dao.IncidentDAO;
+import com.emergency.dao.UnitDAO;
 import com.emergency.model.ActiveDispatch;
-import com.emergency.model.Incident; // <-- ADD THIS IMPORT
+import com.emergency.model.LocationHistory;
 import com.emergency.model.Unit;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.collections.FXCollections;
@@ -12,57 +15,99 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TableRow;
-import javafx.scene.control.TextArea; // <-- ADD THIS IMPORT
+import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
-import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView;
+
 import java.io.IOException;
 import java.util.List;
 
 public class DashboardController {
-
-    // --- Incident Table Components ---
+@FXML private TableColumn<ActiveDispatch, Void> actionColumn;
+    // --- FXML UI Components ---
     @FXML private TableView<ActiveDispatch> activeIncidentsTable;
     @FXML private TableColumn<ActiveDispatch, Integer> incidentIdColumn;
     @FXML private TableColumn<ActiveDispatch, String> typeColumn;
     @FXML private TableColumn<ActiveDispatch, String> locationColumn;
     @FXML private TableColumn<ActiveDispatch, String> priorityColumn;
-    @FXML private Button closeIncidentButton;
-    // --- Unit Table Components ---
+    @FXML private TableColumn<ActiveDispatch, String> assignedUnitColumn;
     @FXML private TableView<Unit> availableUnitsTable;
     @FXML private TableColumn<Unit, String> unitNameColumn;
     @FXML private TableColumn<Unit, String> unitTypeColumn;
-
-    // --- NEW: DETAIL VIEW COMPONENT ---
-    @FXML private TextArea incidentDetailsArea;
-
-    // --- Button Components ---
+    @FXML private TableColumn<Unit, String> unitStatusColumn;
+    @FXML private ListView<LocationHistory> locationHistoryView;
+    @FXML private TextField newLocationNoteField;
+    @FXML private Button addLocationNoteButton;
     @FXML private Button newIncidentButton;
     @FXML private Button dispatchButton;
+    @FXML private Button closeIncidentButton;
+    @FXML private Button addUnitButton;
+    @FXML private Button setOnSceneButton;
+    @FXML private Button setClearButton;
 
+    // --- DAO Instances ---
     private IncidentDAO incidentDAO = new IncidentDAO();
+    private UnitDAO unitDAO = new UnitDAO();
 
     @FXML
     public void initialize() {
-        // Setup for Incidents Table
+        setupTableColumns();
+        setupRowFactories();
+        setupEventListeners();
+        loadInitialData();
+        setupPolling();
+        setupButtonIcons();
+        actionColumn.setCellFactory(param -> new TableCell<>() {
+        private final Button detailsButton = new Button("Details");
+
+        @Override
+        protected void updateItem(Void item, boolean empty) {
+            super.updateItem(item, empty);
+            if (empty) {
+                setGraphic(null);
+            } else {
+                detailsButton.setOnAction(event -> {
+                    // Get the incident for the current row
+                    ActiveDispatch incident = getTableView().getItems().get(getIndex());
+                    openDetailsWindow(incident.getIncidentId());
+                });
+                setGraphic(detailsButton);
+            }
+        }
+    });
+    }
+private void openDetailsWindow(int incidentId) {
+    try {
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/emergency/IncidentDetailsView.fxml"));
+        Parent root = loader.load();
+
+        // Get the controller of the new window
+        IncidentDetailsController controller = loader.getController();
+        // Call the method to pass the incident ID
+        controller.loadIncidentData(incidentId);
+
+        Stage stage = new Stage();
+        stage.setTitle("Incident Details");
+        stage.setScene(new Scene(root));
+        stage.show();
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+}
+    private void setupTableColumns() {
         incidentIdColumn.setCellValueFactory(new PropertyValueFactory<>("incidentId"));
         typeColumn.setCellValueFactory(new PropertyValueFactory<>("incidentType"));
         locationColumn.setCellValueFactory(new PropertyValueFactory<>("locationText"));
         priorityColumn.setCellValueFactory(new PropertyValueFactory<>("priority"));
-
-        // Setup for Units Table
+        assignedUnitColumn.setCellValueFactory(new PropertyValueFactory<>("assignedUnit"));
         unitNameColumn.setCellValueFactory(new PropertyValueFactory<>("unitName"));
         unitTypeColumn.setCellValueFactory(new PropertyValueFactory<>("unitType"));
+        unitStatusColumn.setCellValueFactory(new PropertyValueFactory<>("status"));
+    }
 
-        // Code to style high-priority rows
+    private void setupRowFactories() {
         activeIncidentsTable.setRowFactory(tv -> new TableRow<ActiveDispatch>() {
             @Override
             protected void updateItem(ActiveDispatch item, boolean empty) {
@@ -73,110 +118,135 @@ public class DashboardController {
                 }
             }
         });
-        
-        // --- NEW: LISTEN FOR TABLE ROW SELECTION ---
+    }
+    
+    private void setupEventListeners() {
         activeIncidentsTable.getSelectionModel().selectedItemProperty().addListener(
             (obs, oldSelection, newSelection) -> {
                 if (newSelection != null) {
-                    displayIncidentDetails(newSelection);
+                    displayLocationHistory(newSelection);
+                } else {
+                    locationHistoryView.getItems().clear();
                 }
             }
         );
+    }
 
-        // Load initial data
+    private void loadInitialData() {
         loadDispatchData();
-        loadAvailableUnits();
-        
-        // Setup polling
+        loadAllUnits();
+    }
+
+    private void setupPolling() {
         Timeline poller = new Timeline(new KeyFrame(Duration.seconds(5), event -> {
             loadDispatchData();
-            loadAvailableUnits();
+            loadAllUnits();
         }));
         poller.setCycleCount(Timeline.INDEFINITE);
         poller.play();
-        
-        // Add icon to button
+    }
+
+    private void setupButtonIcons() {
         FontAwesomeIconView plusIcon = new FontAwesomeIconView(FontAwesomeIcon.PLUS_SQUARE);
         plusIcon.setFill(javafx.scene.paint.Color.WHITE);
         newIncidentButton.setGraphic(plusIcon);
     }
-    @FXML
-private void handleCloseIncidentClick() {
-    // Get the currently selected incident from the main table
-    ActiveDispatch selectedIncident = activeIncidentsTable.getSelectionModel().getSelectedItem();
-
-    if (selectedIncident == null) {
-        Alert alert = new Alert(Alert.AlertType.WARNING, "Please select an incident to close.");
-        alert.show();
-        return;
+    
+    private void displayLocationHistory(ActiveDispatch summary) {
+        List<LocationHistory> history = incidentDAO.getLocationHistory(summary.getIncidentId());
+        locationHistoryView.setItems(FXCollections.observableArrayList(history));
     }
 
-    // Call the backend DAO method to close the incident
-    incidentDAO.closeIncident(selectedIncident.getIncidentId());
-
-    System.out.println("Closed incident with ID: " + selectedIncident.getIncidentId());
-
-    // The real-time poller will automatically refresh the table,
-    // and the closed incident will disappear from the view.
-}
-    // --- NEW METHOD TO DISPLAY DETAILS ---
-    private void displayIncidentDetails(ActiveDispatch summary) {
-        Incident fullDetails = incidentDAO.getIncidentDetailsById(summary.getIncidentId());
-
-        if (fullDetails != null) {
-            StringBuilder details = new StringBuilder();
-            details.append("INCIDENT DETAILS\n");
-            details.append("----------------\n");
-            details.append("ID: ").append(fullDetails.getId()).append("\n");
-            details.append("Type: ").append(fullDetails.getType()).append("\n");
-            details.append("Priority: ").append(fullDetails.getPriority()).append("\n");
-            details.append("Severity: ").append(fullDetails.getSeverityLevel()).append("\n");
-            details.append("Location: ").append(fullDetails.getLocationText()).append("\n\n");
-            details.append("Description:\n").append(fullDetails.getDescription());
-
-            incidentDetailsArea.setText(details.toString());
-        } else {
-            incidentDetailsArea.clear();
-        }
-    }
     @FXML
-    private void handleDispatchClick() {
+    private void handleAddLocationNoteClick() {
         ActiveDispatch selectedIncident = activeIncidentsTable.getSelectionModel().getSelectedItem();
-        Unit selectedUnit = availableUnitsTable.getSelectionModel().getSelectedItem();
-
-        if (selectedIncident == null || selectedUnit == null) {
-            Alert alert = new Alert(Alert.AlertType.WARNING, "Please select an incident AND an available unit to dispatch.");
-            alert.show();
+        String note = newLocationNoteField.getText();
+        if (selectedIncident == null || note == null || note.trim().isEmpty()) {
+            showAlert(Alert.AlertType.WARNING, "Please select an incident and enter a note.");
             return;
         }
-
-        incidentDAO.dispatchUnitToIncident(selectedIncident.getIncidentId(), selectedUnit.getUnitId());
-        System.out.println("Dispatched unit " + selectedUnit.getUnitName() + " to incident " + selectedIncident.getIncidentId());
+        incidentDAO.addLocationHistory(selectedIncident.getIncidentId(), note);
+        newLocationNoteField.clear();
+        displayLocationHistory(selectedIncident);
     }
 
     @FXML
     private void handleNewIncidentClick() {
+        openModalForm("/com/emergency/NewIncidentForm.fxml", "Create New Incident");
+    }
+
+    @FXML
+    private void handleAddUnitClick() {
+        openModalForm("/com/emergency/NewUnitForm.fxml", "Add New Dispatch Unit");
+    }
+
+    @FXML
+    private void handleDispatchClick() {
+        ActiveDispatch selectedIncident = activeIncidentsTable.getSelectionModel().getSelectedItem();
+        Unit selectedUnit = availableUnitsTable.getSelectionModel().getSelectedItem();
+        if (selectedIncident == null || selectedUnit == null) {
+            showAlert(Alert.AlertType.WARNING, "Please select an incident AND an available unit.");
+            return;
+        }
+        incidentDAO.dispatchUnitToIncident(selectedIncident.getIncidentId(), selectedUnit.getUnitId());
+    }
+
+    @FXML
+    private void handleCloseIncidentClick() {
+        ActiveDispatch selectedIncident = activeIncidentsTable.getSelectionModel().getSelectedItem();
+        if (selectedIncident == null) {
+            showAlert(Alert.AlertType.WARNING, "Please select an incident to close.");
+            return;
+        }
+        incidentDAO.closeIncident(selectedIncident.getIncidentId());
+    }
+
+    @FXML
+    private void handleSetOnSceneClick() {
+        Unit selectedUnit = availableUnitsTable.getSelectionModel().getSelectedItem();
+        if (selectedUnit != null) {
+            unitDAO.updateUnitStatus(selectedUnit.getUnitId(), "On Scene");
+        } else {
+            showAlert(Alert.AlertType.WARNING, "Please select a unit to update.");
+        }
+    }
+
+    @FXML
+    private void handleSetClearClick() {
+        Unit selectedUnit = availableUnitsTable.getSelectionModel().getSelectedItem();
+        if (selectedUnit != null) {
+            unitDAO.updateUnitStatus(selectedUnit.getUnitId(), "Available");
+        } else {
+            showAlert(Alert.AlertType.WARNING, "Please select a unit to update.");
+        }
+    }
+
+    private void loadDispatchData() {
+        List<ActiveDispatch> dispatchesFromDB = incidentDAO.getActiveDispatches();
+        activeIncidentsTable.setItems(FXCollections.observableArrayList(dispatchesFromDB));
+    }
+
+    private void loadAllUnits() {
+        List<Unit> unitsFromDB = unitDAO.getAllUnits();
+        availableUnitsTable.setItems(FXCollections.observableArrayList(unitsFromDB));
+    }
+
+    private void openModalForm(String fxmlPath, String title) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/emergency/NewIncidentForm.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
             Parent root = loader.load();
             Stage formStage = new Stage();
-            formStage.setTitle("Create New Incident");
-            formStage.initModality(Modality.APPLICATION_MODAL); 
+            formStage.setTitle(title);
+            formStage.initModality(Modality.APPLICATION_MODAL);
             formStage.setScene(new Scene(root));
             formStage.showAndWait();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-    
-    private void loadDispatchData() {
-        List<ActiveDispatch> dispatchesFromDB = incidentDAO.getActiveDispatches();
-        activeIncidentsTable.setItems(FXCollections.observableArrayList(dispatchesFromDB));
-        System.out.println("Incidents dashboard refreshed.");
-    }
-    
-    private void loadAvailableUnits() {
-        List<Unit> unitsFromDB = incidentDAO.getAvailableUnits();
-        availableUnitsTable.setItems(FXCollections.observableArrayList(unitsFromDB));
+
+    private void showAlert(Alert.AlertType alertType, String message) {
+        Alert alert = new Alert(alertType, message);
+        alert.show();
     }
 }

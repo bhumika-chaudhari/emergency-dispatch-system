@@ -1,8 +1,10 @@
 package com.emergency.dao;
 
 import com.emergency.model.ActiveDispatch;
+import com.emergency.model.Caller;
 import com.emergency.model.Incident;
-import com.emergency.model.Unit;
+import com.emergency.model.LocationHistory;
+import com.emergency.model.Witness;
 import com.emergency.util.DatabaseConnector;
 import java.sql.*;
 import java.util.ArrayList;
@@ -10,26 +12,24 @@ import java.util.List;
 
 public class IncidentDAO {
 
-
-
-
-    
-    public List<ActiveDispatch> getActiveDispatches() {
+   // In: com/emergency/dao/IncidentDAO.java
+// Replace your getActiveDispatches method with this
+public List<ActiveDispatch> getActiveDispatches() {
     List<ActiveDispatch> dispatches = new ArrayList<>();
-    // Updated SQL query to include priority
-    String sql = "SELECT incident_id, incident_type, location_text, priority FROM vw_ActiveDispatches";
+    // Updated SQL query to include the unit_name
+    String sql = "SELECT i.incident_id, i.type AS incident_type, i.location_text, i.priority, u.unit_name FROM Incidents i LEFT JOIN Dispatches d ON i.incident_id = d.incident_id LEFT JOIN Emergency_Units u ON d.unit_id = u.unit_id WHERE i.status NOT IN ('Closed')";
 
     try (Connection conn = DatabaseConnector.getConnection();
          PreparedStatement pstmt = conn.prepareStatement(sql);
          ResultSet rs = pstmt.executeQuery()) {
 
         while (rs.next()) {
-            // Updated constructor call to include priority
             dispatches.add(new ActiveDispatch(
                 rs.getInt("incident_id"),
                 rs.getString("incident_type"),
-                rs.getString("location_text"),
-                rs.getString("priority") 
+                rs.getString("location_text"), // This should now work correctly
+                rs.getString("priority"),
+                rs.getString("unit_name") // <-- ADD THIS
             ));
         }
     } catch (SQLException e) {
@@ -37,10 +37,139 @@ public class IncidentDAO {
     }
     return dispatches;
 }
-    // Add this new method inside your IncidentDAO class
-public Incident getIncidentDetailsById(int incidentId) {
-    String sql = "SELECT * FROM Incidents WHERE incident_id = ?";
-    Incident incident = null;
+
+    public Incident getIncidentDetailsById(int incidentId) {
+        String sql = "SELECT * FROM Incidents WHERE incident_id = ?";
+        Incident incident = null;
+        try (Connection conn = DatabaseConnector.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, incidentId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                incident = new Incident();
+                incident.setId(rs.getInt("incident_id"));
+                incident.setType(rs.getString("type"));
+                incident.setDescription(rs.getString("description"));
+                incident.setLocationText(rs.getString("location_text"));
+                incident.setPriority(rs.getString("priority"));
+                incident.setSeverityLevel(rs.getInt("severity_level"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return incident;
+    }
+// Add this method to IncidentDAO.java
+public void addWitness(int incidentId, String firstName, String lastName, String phone, String statement) {
+    String sql = "{CALL AddWitness(?, ?, ?, ?, ?)}";
+    try (Connection conn = DatabaseConnector.getConnection();
+         CallableStatement cstmt = conn.prepareCall(sql)) {
+
+        cstmt.setInt(1, incidentId);
+        cstmt.setString(2, firstName);
+        cstmt.setString(3, lastName);
+        cstmt.setString(4, phone);
+        cstmt.setString(5, statement);
+        cstmt.execute();
+
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+}
+    public void closeIncident(int incidentId) {
+        String sql = "{CALL CloseIncident(?)}";
+        try (Connection conn = DatabaseConnector.getConnection();
+             CallableStatement cstmt = conn.prepareCall(sql)) {
+            cstmt.setInt(1, incidentId);
+            cstmt.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+// Add these two new methods inside your IncidentDAO class
+
+public List<LocationHistory> getLocationHistory(int incidentId) {
+    List<LocationHistory> history = new ArrayList<>();
+    String sql = "SELECT note, created_at FROM Incident_Location_History WHERE incident_id = ? ORDER BY created_at DESC";
+
+    try (Connection conn = DatabaseConnector.getConnection();
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+        pstmt.setInt(1, incidentId);
+        ResultSet rs = pstmt.executeQuery();
+
+        while (rs.next()) {
+            history.add(new LocationHistory(
+                rs.getString("note"),
+                rs.getTimestamp("created_at")
+            ));
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+    return history;
+}
+
+public void addLocationHistory(int incidentId, String note) {
+    String sql = "{CALL AddLocationHistoryNote(?, ?)}";
+
+    try (Connection conn = DatabaseConnector.getConnection();
+         CallableStatement cstmt = conn.prepareCall(sql)) {
+
+        cstmt.setInt(1, incidentId);
+        cstmt.setString(2, note);
+        cstmt.execute();
+
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+}
+    // Replace the old createNewIncident method with this one
+public int createNewIncident(String firstName, String lastName, String phone, String type, String description, String locationText, String priority, int severity) {
+    String sql = "{CALL CreateNewIncident(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}";
+    int newIncidentId = -1;
+
+    try (Connection conn = DatabaseConnector.getConnection();
+         CallableStatement cstmt = conn.prepareCall(sql)) {
+
+        cstmt.setString(1, firstName);
+        cstmt.setString(2, lastName);
+        cstmt.setString(3, phone);
+        cstmt.setString(4, type);
+        cstmt.setString(5, description);
+        cstmt.setString(6, locationText);
+        cstmt.setBigDecimal(7, null); // Latitude placeholder
+        cstmt.setBigDecimal(8, null); // Longitude placeholder
+        
+        // Use the values from the form instead of hardcoded values
+        cstmt.setString(9, priority);
+        cstmt.setInt(10, severity);
+        
+        cstmt.setInt(11, 101); // created_by_user_id placeholder
+        cstmt.registerOutParameter(12, java.sql.Types.INTEGER);
+        cstmt.execute();
+        newIncidentId = cstmt.getInt(12);
+
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+    return newIncidentId;
+}
+    public void dispatchUnitToIncident(int incidentId, int unitId) {
+        String sql = "{CALL DispatchUnitToIncident(?, ?, ?)}";
+        try (Connection conn = DatabaseConnector.getConnection();
+             CallableStatement cstmt = conn.prepareCall(sql)) {
+            cstmt.setInt(1, unitId);
+            cstmt.setInt(2, incidentId);
+            cstmt.setString(3, "Dispatched from JavaFX application");
+            cstmt.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    public Caller getCallerDetails(int incidentId) {
+    String sql = "SELECT c.* FROM Callers c JOIN Incidents i ON c.caller_id = i.caller_id WHERE i.incident_id = ?";
+    Caller caller = null;
 
     try (Connection conn = DatabaseConnector.getConnection();
          PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -49,103 +178,39 @@ public Incident getIncidentDetailsById(int incidentId) {
         ResultSet rs = pstmt.executeQuery();
 
         if (rs.next()) {
-            incident = new Incident();
-            incident.setId(rs.getInt("incident_id"));
-            incident.setType(rs.getString("type"));
-            incident.setDescription(rs.getString("description"));
-            incident.setLocationText(rs.getString("location_text"));
-            incident.setPriority(rs.getString("priority"));
-            incident.setSeverityLevel(rs.getInt("severity_level"));
+            caller = new Caller(
+                rs.getInt("caller_id"),
+                rs.getString("first_name"),
+                rs.getString("last_name"),
+                rs.getString("phone_number"),
+                rs.getString("email")
+            );
         }
     } catch (SQLException e) {
         e.printStackTrace();
     }
-    return incident;
-}
-// Add this new method inside your IncidentDAO class
-public void closeIncident(int incidentId) {
-    String sql = "{CALL CloseIncident(?)}";
+    return caller;
+}public List<Witness> getWitnesses(int incidentId) {
+    List<Witness> witnesses = new ArrayList<>();
+    String sql = "SELECT first_name, last_name, phone_number, statement FROM Witnesses WHERE incident_id = ?";
 
     try (Connection conn = DatabaseConnector.getConnection();
-         CallableStatement cstmt = conn.prepareCall(sql)) {
-        
-        cstmt.setInt(1, incidentId);
-        cstmt.execute();
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-    } catch (SQLException e) {
-        e.printStackTrace();
-    }
-}
-public int createNewIncident(String firstName, String lastName, String phone, String type, String description, String locationText) {
-    String sql = "{CALL CreateNewIncident(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}";
-    int newIncidentId = -1; // Default value if something goes wrong
-
-    try (Connection conn = DatabaseConnector.getConnection();
-         CallableStatement cstmt = conn.prepareCall(sql)) {
-
-        // Set all the IN (input) parameters for the procedure
-        cstmt.setString(1, firstName);
-        cstmt.setString(2, lastName);
-        cstmt.setString(3, phone);
-        cstmt.setString(4, type);
-        cstmt.setString(5, description);
-        cstmt.setString(6, locationText);
-        cstmt.setBigDecimal(7, null); // Latitude - for now we'll pass null
-        cstmt.setBigDecimal(8, null); // Longitude - for now we'll pass null
-        cstmt.setString(9, "High");   // Priority - default to High
-        cstmt.setInt(10, 3);          // Severity - default to 3
-        cstmt.setInt(11, 101);        // created_by_user_id - placeholder
-
-        // Register the OUT (output) parameter to get the new ID back
-        cstmt.registerOutParameter(12, java.sql.Types.INTEGER);
-
-        // Execute the procedure
-        cstmt.execute();
-
-        // Get the new incident ID from the OUT parameter
-        newIncidentId = cstmt.getInt(12);
-
-    } catch (SQLException e) {
-        e.printStackTrace();
-    }
-    return newIncidentId;
-}
-// Add this method to get all available units
-public List<Unit> getAvailableUnits() {
-    List<Unit> units = new ArrayList<>();
-    String sql = "SELECT unit_id, unit_name, type FROM Emergency_Units WHERE status = 'Available'";
-
-    try (Connection conn = DatabaseConnector.getConnection();
-         PreparedStatement pstmt = conn.prepareStatement(sql);
-         ResultSet rs = pstmt.executeQuery()) {
+        pstmt.setInt(1, incidentId);
+        ResultSet rs = pstmt.executeQuery();
 
         while (rs.next()) {
-            units.add(new Unit(
-                rs.getInt("unit_id"),
-                rs.getString("unit_name"),
-                rs.getString("type")
+            witnesses.add(new Witness(
+                rs.getString("first_name") + " " + rs.getString("last_name"),
+                rs.getString("phone_number"),
+                rs.getString("statement")
             ));
         }
     } catch (SQLException e) {
         e.printStackTrace();
     }
-    return units;
+    return witnesses;
 }
 
-// Add this method to call your stored procedure
-public void dispatchUnitToIncident(int incidentId, int unitId) {
-    String sql = "{CALL DispatchUnitToIncident(?, ?, ?)}";
-
-    try (Connection conn = DatabaseConnector.getConnection();
-         CallableStatement cstmt = conn.prepareCall(sql)) {
-
-        cstmt.setInt(1, unitId);
-        cstmt.setInt(2, incidentId);
-        cstmt.setString(3, "Dispatched from JavaFX application");
-        cstmt.execute();
-
-    } catch (SQLException e) {
-        e.printStackTrace();
-    }
-}
 }

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.text.Font?>
+
+<GridPane hgap="15" vgap="15" prefWidth="600" style="-fx-background-color: #f9f9f9;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.emergency.controller.NewWitnessFormController">
+
+    <columnConstraints>
+        <ColumnConstraints halignment="RIGHT" minWidth="100" prefWidth="120" />
+        <ColumnConstraints hgrow="ALWAYS" minWidth="250" />
+    </columnConstraints>
+
+    <rowConstraints>
+        <RowConstraints />
+        <RowConstraints />
+        <RowConstraints />
+        <RowConstraints />
+        <RowConstraints vgrow="ALWAYS" />
+        <RowConstraints />
+    </rowConstraints>
+
+    <padding>
+        <Insets bottom="25" left="25" right="25" top="25" />
+    </padding>
+
+    <children>
+        <Label style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-padding: 0 0 10 0;" text="New Witness Information" GridPane.columnSpan="2" />
+
+        <Label text="First Name:" GridPane.rowIndex="1">
+            <font><Font size="14" /></font>
+        </Label>
+        <TextField fx:id="firstNameField" promptText="Enter first name" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+
+        <Label text="Last Name:" GridPane.rowIndex="2">
+            <font><Font size="14" /></font>
+        </Label>
+        <TextField fx:id="lastNameField" promptText="Enter last name" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+
+        <Label text="Phone:" GridPane.rowIndex="3">
+            <font><Font size="14" /></font>
+        </Label>
+        <TextField fx:id="phoneField" promptText="Enter phone number" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+
+        <Label text="Statement:" GridPane.rowIndex="4" GridPane.valignment="TOP">
+            <font><Font size="14" /></font>
+        </Label>
+        <TextArea fx:id="statementArea" prefHeight="120" promptText="Enter witness statement" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+
+        <Button fx:id="saveButton" onAction="#handleSaveWitnessClick" style="-fx-padding: 8 16; -fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 5;" text="💾 Save Witness" GridPane.columnIndex="1" GridPane.halignment="RIGHT" GridPane.rowIndex="5" />
+    </children>
+</GridPane>
