@@ -6,8 +6,8 @@ import java.sql.SQLException;
 
 public class DatabaseConnector {
     private static final String DB_URL = "jdbc:mysql://localhost:3306/emergency_dispatch_system";
-    private static final String USER = "dispatch_app";
-    private static final String PASS = "YourStrongPasswordHere"; // <-- IMPORTANT: SET YOUR PASSWORD
+    private static final String USER = "root";
+    private static final String PASS = "bhumi10"; // <-- IMPORTANT: SET YOUR PASSWORD
 
     public static Connection getConnection() throws SQLException {
         return DriverManager.getConnection(DB_URL, USER, PASS);
