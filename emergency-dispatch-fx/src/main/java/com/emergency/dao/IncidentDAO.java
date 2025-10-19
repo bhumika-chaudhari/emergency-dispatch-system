@@ -1,6 +1,7 @@
 package com.emergency.dao;
 
 import com.emergency.model.ActiveDispatch;
+import com.emergency.model.Unit;
 import com.emergency.util.DatabaseConnector;
 import java.sql.*;
 import java.util.ArrayList;
@@ -67,5 +68,43 @@ public int createNewIncident(String firstName, String lastName, String phone, St
         e.printStackTrace();
     }
     return newIncidentId;
+}
+// Add this method to get all available units
+public List<Unit> getAvailableUnits() {
+    List<Unit> units = new ArrayList<>();
+    String sql = "SELECT unit_id, unit_name, type FROM Emergency_Units WHERE status = 'Available'";
+
+    try (Connection conn = DatabaseConnector.getConnection();
+         PreparedStatement pstmt = conn.prepareStatement(sql);
+         ResultSet rs = pstmt.executeQuery()) {
+
+        while (rs.next()) {
+            units.add(new Unit(
+                rs.getInt("unit_id"),
+                rs.getString("unit_name"),
+                rs.getString("type")
+            ));
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+    return units;
+}
+
+// Add this method to call your stored procedure
+public void dispatchUnitToIncident(int incidentId, int unitId) {
+    String sql = "{CALL DispatchUnitToIncident(?, ?, ?)}";
+
+    try (Connection conn = DatabaseConnector.getConnection();
+         CallableStatement cstmt = conn.prepareCall(sql)) {
+
+        cstmt.setInt(1, unitId);
+        cstmt.setInt(2, incidentId);
+        cstmt.setString(3, "Dispatched from JavaFX application");
+        cstmt.execute();
+
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
 }
 }

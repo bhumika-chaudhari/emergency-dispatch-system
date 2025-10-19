@@ -7,15 +7,24 @@
 
 <AnchorPane prefHeight="800.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.emergency.controller.DashboardController">
    <children>
-      <TableView fx:id="activeIncidentsTable" AnchorPane.bottomAnchor="60.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="10.0">
+   
+      <TableView fx:id="activeIncidentsTable" layoutX="14.0" layoutY="14.0" prefHeight="725.0" prefWidth="850.0" AnchorPane.bottomAnchor="60.0" AnchorPane.leftAnchor="14.0" AnchorPane.topAnchor="14.0">
         <columns>
           <TableColumn fx:id="incidentIdColumn" prefWidth="75.0" text="ID" />
           <TableColumn fx:id="typeColumn" prefWidth="250.0" text="Type" />
-          <TableColumn fx:id="locationColumn" prefWidth="850.0" text="Location" />
+          <TableColumn fx:id="locationColumn" prefWidth="523.0" text="Location" />
         </columns>
       </TableView>
       
-      <Button fx:id="newIncidentButton" layoutX="1054.0" layoutY="751.0" onAction="#handleNewIncidentClick" prefHeight="35.0" prefWidth="136.0" text="New Incident" AnchorPane.bottomAnchor="14.0" AnchorPane.rightAnchor="10.0" />
+      <TableView fx:id="availableUnitsTable" layoutX="878.0" layoutY="14.0" prefHeight="725.0" prefWidth="308.0" AnchorPane.bottomAnchor="60.0" AnchorPane.leftAnchor="878.0" AnchorPane.rightAnchor="14.0" AnchorPane.topAnchor="14.0">
+        <columns>
+          <TableColumn fx:id="unitNameColumn" prefWidth="170.0" text="Unit Name" />
+          <TableColumn fx:id="unitTypeColumn" prefWidth="136.0" text="Type" />
+        </columns>
+      </TableView>
+      
+      <Button fx:id="newIncidentButton" onAction="#handleNewIncidentClick" prefHeight="35.0" prefWidth="136.0" text="New Incident" AnchorPane.bottomAnchor="14.0" AnchorPane.rightAnchor="156.0" />
+      <Button fx:id="dispatchButton" onAction="#handleDispatchClick" prefHeight="35.0" prefWidth="136.0" text="Dispatch Unit" AnchorPane.bottomAnchor="14.0" AnchorPane.rightAnchor="14.0" />
       
    </children>
 </AnchorPane>
