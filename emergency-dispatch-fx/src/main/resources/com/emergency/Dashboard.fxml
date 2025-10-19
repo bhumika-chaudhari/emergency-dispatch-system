@@ -27,8 +27,10 @@
       
       <TextArea fx:id="incidentDetailsArea" editable="false" layoutX="14.0" layoutY="578.0" prefHeight="160.0" prefWidth="1172.0" AnchorPane.bottomAnchor="60.0" AnchorPane.leftAnchor="14.0" AnchorPane.rightAnchor="14.0" />
       
-      <Button fx:id="newIncidentButton" onAction="#handleNewIncidentClick" prefHeight="35.0" prefWidth="136.0" text="New Incident" AnchorPane.bottomAnchor="14.0" AnchorPane.rightAnchor="156.0" />
-      <Button fx:id="dispatchButton" onAction="#handleDispatchClick" prefHeight="35.0" prefWidth="136.0" text="Dispatch Unit" AnchorPane.bottomAnchor="14.0" AnchorPane.rightAnchor="14.0" />
+      <Button fx:id="newIncidentButton" onAction="#handleNewIncidentClick" prefHeight="35.0" prefWidth="136.0" text="New Incident" AnchorPane.bottomAnchor="14.0" AnchorPane.rightAnchor="300.0" />
+      <Button fx:id="dispatchButton" onAction="#handleDispatchClick" prefHeight="35.0" prefWidth="136.0" text="Dispatch Unit" AnchorPane.bottomAnchor="14.0" AnchorPane.rightAnchor="158.0" />
+      
+      <Button fx:id="closeIncidentButton" onAction="#handleCloseIncidentClick" prefHeight="35.0" prefWidth="138.0" text="Close Incident" AnchorPane.bottomAnchor="14.0" AnchorPane.rightAnchor="14.0" />
       
    </children>
 </AnchorPane>

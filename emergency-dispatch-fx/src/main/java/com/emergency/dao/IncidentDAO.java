@@ -62,6 +62,20 @@ public Incident getIncidentDetailsById(int incidentId) {
     }
     return incident;
 }
+// Add this new method inside your IncidentDAO class
+public void closeIncident(int incidentId) {
+    String sql = "{CALL CloseIncident(?)}";
+
+    try (Connection conn = DatabaseConnector.getConnection();
+         CallableStatement cstmt = conn.prepareCall(sql)) {
+        
+        cstmt.setInt(1, incidentId);
+        cstmt.execute();
+
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+}
 public int createNewIncident(String firstName, String lastName, String phone, String type, String description, String locationText) {
     String sql = "{CALL CreateNewIncident(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}";
     int newIncidentId = -1; // Default value if something goes wrong

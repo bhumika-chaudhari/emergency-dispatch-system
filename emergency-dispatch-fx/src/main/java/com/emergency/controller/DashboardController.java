@@ -35,7 +35,7 @@ public class DashboardController {
     @FXML private TableColumn<ActiveDispatch, String> typeColumn;
     @FXML private TableColumn<ActiveDispatch, String> locationColumn;
     @FXML private TableColumn<ActiveDispatch, String> priorityColumn;
-    
+    @FXML private Button closeIncidentButton;
     // --- Unit Table Components ---
     @FXML private TableView<Unit> availableUnitsTable;
     @FXML private TableColumn<Unit, String> unitNameColumn;
@@ -100,7 +100,25 @@ public class DashboardController {
         plusIcon.setFill(javafx.scene.paint.Color.WHITE);
         newIncidentButton.setGraphic(plusIcon);
     }
-    
+    @FXML
+private void handleCloseIncidentClick() {
+    // Get the currently selected incident from the main table
+    ActiveDispatch selectedIncident = activeIncidentsTable.getSelectionModel().getSelectedItem();
+
+    if (selectedIncident == null) {
+        Alert alert = new Alert(Alert.AlertType.WARNING, "Please select an incident to close.");
+        alert.show();
+        return;
+    }
+
+    // Call the backend DAO method to close the incident
+    incidentDAO.closeIncident(selectedIncident.getIncidentId());
+
+    System.out.println("Closed incident with ID: " + selectedIncident.getIncidentId());
+
+    // The real-time poller will automatically refresh the table,
+    // and the closed incident will disappear from the view.
+}
     // --- NEW METHOD TO DISPLAY DETAILS ---
     private void displayIncidentDetails(ActiveDispatch summary) {
         Incident fullDetails = incidentDAO.getIncidentDetailsById(summary.getIncidentId());
