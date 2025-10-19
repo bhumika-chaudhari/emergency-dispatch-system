@@ -1,0 +1,17 @@
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+.mvn/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# System files & logs
+.DS_Store
+Thumbs.db
+*.log
