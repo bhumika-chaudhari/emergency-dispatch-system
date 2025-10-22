@@ -33,7 +33,6 @@ public class IncidentDetailsController {
     @FXML private Label severityLabel;     // <-- ADDED
     @FXML private Label callerNameLabel;
     @FXML private Label callerPhoneLabel;
-    @FXML private Label callerEmailLabel;
     @FXML private ListView<Witness> witnessListView;
     @FXML private Button addWitnessButton;
 
@@ -110,12 +109,11 @@ public class IncidentDetailsController {
         if (caller != null) {
             callerNameLabel.setText(caller.getFirstName() + " " + caller.getLastName());
             callerPhoneLabel.setText(caller.getPhoneNumber());
-            callerEmailLabel.setText(caller.getEmail());
+          
         } else {
             // Clear fields if caller not found
             callerNameLabel.setText("-");
             callerPhoneLabel.setText("-");
-            callerEmailLabel.setText("-");
         }
 
         // Load witnesses
