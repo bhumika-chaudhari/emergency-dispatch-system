@@ -1,19 +1,102 @@
-/* Change the default accent color used by the light theme */
+/* --- Base Enhancements --- */
 .root {
-    -fx-accent: #007bff; /* A nice shade of blue */
+    /* Define accent colors based on Nord palette */
+    -fx-accent: #88C0D0; /* Nord Frost Blue */
+    -fx-focus-color: #8FBCBB; /* Nord Frost Teal */
 }
 
-/* Make the table headers stand out more */
-.table-view .column-header {
+/* --- Table Styles --- */
+.table-view {
+    -fx-background-color: #3B4252; /* Nord Polar Night Darker */
+    -fx-border-color: #4C566A; /* Nord Polar Night Lighter */
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: linear-gradient(to bottom, #4C566A, #434C5E); /* Gradient header */
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: #ECEFF4; /* Nord Snow Storm */
     -fx-font-weight: bold;
-    -fx-font-size: 1.1em;
 }
 
-/* --- Custom Style for High Priority Rows --- */
-/* This is the style we will apply with Java code */
+.table-row-cell {
+    -fx-background-color: #3B4252;
+    -fx-text-fill: #D8DEE9; /* Nord Snow Storm Light */
+    -fx-border-color: transparent transparent #434C5E transparent; /* Subtle row separator */
+}
+
+.table-row-cell:odd {
+    -fx-background-color: #434C5E; /* Slightly lighter for alternating rows */
+}
+
+/* Hover effect for rows */
+.table-row-cell:hover {
+    -fx-background-color: #5E81AC; /* Nord Frost Blue Darker */
+    -fx-text-fill: white;
+}
+
+/* Selected row style */
+.table-row-cell:selected {
+    -fx-background-color: -fx-accent;
+    -fx-text-fill: #2E3440; /* Nord Polar Night Darkest */
+}
+
+/* High priority row style (on top of Nord colors) */
 .high-priority-row {
-    -fx-background-color: #ffcdd2; /* A light red background */
+    -fx-background-color: #BF616A; /* Nord Red */
+    -fx-text-fill: #ECEFF4;
 }
 .high-priority-row:selected {
-    -fx-background-color: #e57373; /* A darker red when selected */
+    -fx-background-color: #D08770; /* Nord Orange */
+}
+
+/* --- Button Styles --- */
+.button {
+    -fx-background-color: #5E81AC; /* Nord Frost Blue Darker */
+    -fx-text-fill: #ECEFF4;
+    -fx-font-weight: bold;
+    -fx-background-radius: 4;
+}
+
+.button:hover {
+    -fx-background-color: #81A1C1; /* Nord Frost Blue Lighter */
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 5, 0, 0, 1); /* Add shadow on hover */
+}
+
+/* Specific style for important buttons */
+#dispatchButton, #newIncidentButton {
+    -fx-background-color: #A3BE8C; /* Nord Green */
+    -fx-text-fill: #2E3440;
+}
+#dispatchButton:hover, #newIncidentButton:hover {
+    -fx-background-color: #B48EAD; /* Nord Purple */
+}
+
+/* Style for destructive action button */
+#closeIncidentButton {
+     -fx-background-color: #BF616A; /* Nord Red */
+}
+#closeIncidentButton:hover {
+    -fx-background-color: #D08770; /* Nord Orange */
+}
+
+/* --- Other Controls --- */
+.label {
+    -fx-text-fill: #ECEFF4;
+}
+
+.text-field, .text-area, .list-view {
+    -fx-background-color: #434C5E;
+    -fx-text-fill: #ECEFF4;
+    -fx-border-color: #4C566A;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+}
+
+.split-pane > .split-pane-divider {
+    -fx-background-color: #4C566A;
+    -fx-padding: 0 1 0 1;
 }

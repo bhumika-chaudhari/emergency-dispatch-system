@@ -59,8 +59,8 @@ public List<ActiveDispatch> getActiveDispatches() {
         }
         return incident;
     }
-// Add this method to IncidentDAO.java
-public void addWitness(int incidentId, String firstName, String lastName, String phone, String statement) {
+// In IncidentDAO.java
+public boolean addWitness(int incidentId, String firstName, String lastName, String phone, String statement) {
     String sql = "{CALL AddWitness(?, ?, ?, ?, ?)}";
     try (Connection conn = DatabaseConnector.getConnection();
          CallableStatement cstmt = conn.prepareCall(sql)) {
@@ -71,9 +71,14 @@ public void addWitness(int incidentId, String firstName, String lastName, String
         cstmt.setString(4, phone);
         cstmt.setString(5, statement);
         cstmt.execute();
+        
+        // If execute() completes without error, return true
+        return true; 
 
     } catch (SQLException e) {
+        // If an error occurs, print it and return false
         e.printStackTrace();
+        return false; 
     }
 }
     public void closeIncident(int incidentId) {
@@ -190,9 +195,13 @@ public int createNewIncident(String firstName, String lastName, String phone, St
         e.printStackTrace();
     }
     return caller;
-}public List<Witness> getWitnesses(int incidentId) {
+}// In IncidentDAO.java
+
+// Update the getWitnesses method
+public List<Witness> getWitnesses(int incidentId) {
     List<Witness> witnesses = new ArrayList<>();
-    String sql = "SELECT first_name, last_name, phone_number, statement FROM Witnesses WHERE incident_id = ?";
+    // Include witness_id in the query
+    String sql = "SELECT witness_id, first_name, last_name, phone_number, statement FROM Witnesses WHERE incident_id = ?";
 
     try (Connection conn = DatabaseConnector.getConnection();
          PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -202,6 +211,7 @@ public int createNewIncident(String firstName, String lastName, String phone, St
 
         while (rs.next()) {
             witnesses.add(new Witness(
+                rs.getInt("witness_id"), // <-- Pass the ID
                 rs.getString("first_name") + " " + rs.getString("last_name"),
                 rs.getString("phone_number"),
                 rs.getString("statement")
@@ -213,4 +223,15 @@ public int createNewIncident(String firstName, String lastName, String phone, St
     return witnesses;
 }
 
+// Add this new method
+public void deleteWitness(int witnessId) {
+    String sql = "{CALL DeleteWitness(?)}";
+    try (Connection conn = DatabaseConnector.getConnection();
+         CallableStatement cstmt = conn.prepareCall(sql)) {
+        cstmt.setInt(1, witnessId);
+        cstmt.execute();
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+}
 }

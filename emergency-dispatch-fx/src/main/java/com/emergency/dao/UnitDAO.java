@@ -1,5 +1,6 @@
 package com.emergency.dao;
 
+import com.emergency.model.Location;
 import com.emergency.model.Unit;
 import com.emergency.util.DatabaseConnector;
 import java.sql.*;
@@ -8,15 +9,18 @@ import java.util.List;
 
 public class UnitDAO {
 
-    public void createNewUnit(String unitName, String unitType) {
-        String sql = "{CALL CreateNewUnit(?, ?)}";
+    public boolean createNewUnit(String unitName, String unitType, int locationId) {
+        String sql = "{CALL CreateNewUnit(?, ?, ?)}";
         try (Connection conn = DatabaseConnector.getConnection();
              CallableStatement cstmt = conn.prepareCall(sql)) {
             cstmt.setString(1, unitName);
             cstmt.setString(2, unitType);
+            cstmt.setInt(3, locationId);
             cstmt.execute();
+            return true;
         } catch (SQLException e) {
             e.printStackTrace();
+            return false;
         }
     }
 
@@ -32,9 +36,30 @@ public class UnitDAO {
         }
     }
 
+    public List<Location> getAllLocations() {
+        List<Location> locations = new ArrayList<>();
+        String sql = "SELECT location_id, name FROM Locations ORDER BY name";
+        try (Connection conn = DatabaseConnector.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+            while (rs.next()) {
+                locations.add(new Location(
+                    rs.getInt("location_id"),
+                    rs.getString("name")
+                ));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return locations;
+    }
+
+    // Method to get ALL units, regardless of status
     public List<Unit> getAllUnits() {
         List<Unit> units = new ArrayList<>();
-        String sql = "SELECT unit_id, unit_name, type, status FROM Emergency_Units";
+        String sql = "SELECT eu.unit_id, eu.unit_name, eu.type, eu.status, loc.name AS location_name " +
+                     "FROM Emergency_Units eu " +
+                     "LEFT JOIN Locations loc ON eu.current_location_id = loc.location_id";
         try (Connection conn = DatabaseConnector.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql);
              ResultSet rs = pstmt.executeQuery()) {
@@ -43,7 +68,8 @@ public class UnitDAO {
                     rs.getInt("unit_id"),
                     rs.getString("unit_name"),
                     rs.getString("type"),
-                    rs.getString("status")
+                    rs.getString("status"),
+                    rs.getString("location_name")
                 ));
             }
         } catch (SQLException e) {
@@ -51,12 +77,15 @@ public class UnitDAO {
         }
         return units;
     }
-    // In: com/emergency/dao/UnitDAO.java
-// RENAME the method and add a WHERE clause to the SQL
-public List<Unit> getAvailableUnits() {
-    List<Unit> units = new ArrayList<>();
-    String sql = "SELECT unit_id, unit_name, type, status FROM Emergency_Units WHERE status = 'Available'";
-     try (Connection conn = DatabaseConnector.getConnection();
+
+    // Method to get ONLY available units
+    public List<Unit> getAvailableUnits() {
+        List<Unit> units = new ArrayList<>();
+        String sql = "SELECT eu.unit_id, eu.unit_name, eu.type, eu.status, loc.name AS location_name " +
+                     "FROM Emergency_Units eu " +
+                     "LEFT JOIN Locations loc ON eu.current_location_id = loc.location_id " +
+                     "WHERE eu.status = 'Available'";
+        try (Connection conn = DatabaseConnector.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql);
              ResultSet rs = pstmt.executeQuery()) {
             while (rs.next()) {
@@ -64,12 +93,13 @@ public List<Unit> getAvailableUnits() {
                     rs.getInt("unit_id"),
                     rs.getString("unit_name"),
                     rs.getString("type"),
-                    rs.getString("status")
+                    rs.getString("status"),
+                    rs.getString("location_name")
                 ));
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return units;
-}
+    }
 }

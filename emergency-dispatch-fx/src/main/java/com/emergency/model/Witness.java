@@ -4,9 +4,10 @@ public class Witness {
     private String name;
     private String phone;
     private String statement;
+    private int witnessId;
 
-    // Constructor to easily create new witness objects
-    public Witness(String name, String phone, String statement) {
+    public Witness(int witnessId, String name, String phone, String statement) { // <-- ADD ID
+        this.witnessId = witnessId;
         this.name = name;
         this.phone = phone;
         this.statement = statement;
@@ -15,6 +16,10 @@ public class Witness {
     // --- Getters ---
     public String getName() {
         return name;
+    }
+
+    public int getWitnessId() {
+        return witnessId;
     }
 
     public String getPhone() {
@@ -41,8 +46,8 @@ public class Witness {
     // This method is useful for displaying the witness in a ListView
     @Override
 
-public String toString() {
-    // This formats how each witness will look in the list
-    return name + " (" + phone + "):\n\t\"" + statement + "\"";
-}
+    public String toString() {
+        // This formats how each witness will look in the list
+        return name + " (" + phone + "):\n\t\"" + statement + "\"";
+    }
 }

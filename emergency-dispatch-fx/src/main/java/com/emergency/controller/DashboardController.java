@@ -25,7 +25,7 @@ import java.io.IOException;
 import java.util.List;
 
 public class DashboardController {
-@FXML private TableColumn<ActiveDispatch, Void> actionColumn;
+    @FXML private TableColumn<ActiveDispatch, Void> actionColumn;
     // --- FXML UI Components ---
     @FXML private TableView<ActiveDispatch> activeIncidentsTable;
     @FXML private TableColumn<ActiveDispatch, Integer> incidentIdColumn;
@@ -33,10 +33,12 @@ public class DashboardController {
     @FXML private TableColumn<ActiveDispatch, String> locationColumn;
     @FXML private TableColumn<ActiveDispatch, String> priorityColumn;
     @FXML private TableColumn<ActiveDispatch, String> assignedUnitColumn;
+    @FXML private TableColumn<ActiveDispatch, String> incidentStatusColumn;
     @FXML private TableView<Unit> availableUnitsTable;
     @FXML private TableColumn<Unit, String> unitNameColumn;
     @FXML private TableColumn<Unit, String> unitTypeColumn;
     @FXML private TableColumn<Unit, String> unitStatusColumn;
+    @FXML private TableColumn<Unit, String> unitLocationColumn;
     @FXML private ListView<LocationHistory> locationHistoryView;
     @FXML private TextField newLocationNoteField;
     @FXML private Button addLocationNoteButton;
@@ -56,55 +58,24 @@ public class DashboardController {
         setupTableColumns();
         setupRowFactories();
         setupEventListeners();
+        setupActionColumn();
         loadInitialData();
         setupPolling();
         setupButtonIcons();
-        actionColumn.setCellFactory(param -> new TableCell<>() {
-        private final Button detailsButton = new Button("Details");
-
-        @Override
-        protected void updateItem(Void item, boolean empty) {
-            super.updateItem(item, empty);
-            if (empty) {
-                setGraphic(null);
-            } else {
-                detailsButton.setOnAction(event -> {
-                    // Get the incident for the current row
-                    ActiveDispatch incident = getTableView().getItems().get(getIndex());
-                    openDetailsWindow(incident.getIncidentId());
-                });
-                setGraphic(detailsButton);
-            }
-        }
-    });
     }
-private void openDetailsWindow(int incidentId) {
-    try {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/emergency/IncidentDetailsView.fxml"));
-        Parent root = loader.load();
 
-        // Get the controller of the new window
-        IncidentDetailsController controller = loader.getController();
-        // Call the method to pass the incident ID
-        controller.loadIncidentData(incidentId);
-
-        Stage stage = new Stage();
-        stage.setTitle("Incident Details");
-        stage.setScene(new Scene(root));
-        stage.show();
-    } catch (IOException e) {
-        e.printStackTrace();
-    }
-}
     private void setupTableColumns() {
         incidentIdColumn.setCellValueFactory(new PropertyValueFactory<>("incidentId"));
         typeColumn.setCellValueFactory(new PropertyValueFactory<>("incidentType"));
         locationColumn.setCellValueFactory(new PropertyValueFactory<>("locationText"));
         priorityColumn.setCellValueFactory(new PropertyValueFactory<>("priority"));
         assignedUnitColumn.setCellValueFactory(new PropertyValueFactory<>("assignedUnit"));
+        incidentStatusColumn.setCellValueFactory(new PropertyValueFactory<>("status"));
+
         unitNameColumn.setCellValueFactory(new PropertyValueFactory<>("unitName"));
         unitTypeColumn.setCellValueFactory(new PropertyValueFactory<>("unitType"));
         unitStatusColumn.setCellValueFactory(new PropertyValueFactory<>("status"));
+        unitLocationColumn.setCellValueFactory(new PropertyValueFactory<>("locationName"));
     }
 
     private void setupRowFactories() {
@@ -119,7 +90,7 @@ private void openDetailsWindow(int incidentId) {
             }
         });
     }
-    
+
     private void setupEventListeners() {
         activeIncidentsTable.getSelectionModel().selectedItemProperty().addListener(
             (obs, oldSelection, newSelection) -> {
@@ -130,6 +101,26 @@ private void openDetailsWindow(int incidentId) {
                 }
             }
         );
+    }
+
+    private void setupActionColumn() {
+        actionColumn.setCellFactory(param -> new TableCell<>() {
+            private final Button detailsButton = new Button("Details");
+            {
+                detailsButton.getStyleClass().addAll("button-xs", "flat"); // Optional styling
+                detailsButton.setOnAction(event -> {
+                    ActiveDispatch incident = getTableView().getItems().get(getIndex());
+                    if (incident != null) {
+                        openDetailsWindow(incident.getIncidentId());
+                    }
+                });
+            }
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(empty ? null : detailsButton);
+            }
+        });
     }
 
     private void loadInitialData() {
@@ -148,10 +139,10 @@ private void openDetailsWindow(int incidentId) {
 
     private void setupButtonIcons() {
         FontAwesomeIconView plusIcon = new FontAwesomeIconView(FontAwesomeIcon.PLUS_SQUARE);
-        plusIcon.setFill(javafx.scene.paint.Color.WHITE);
+        // plusIcon.setFill(javafx.scene.paint.Color.WHITE); // Uncomment if needed
         newIncidentButton.setGraphic(plusIcon);
     }
-    
+
     private void displayLocationHistory(ActiveDispatch summary) {
         List<LocationHistory> history = incidentDAO.getLocationHistory(summary.getIncidentId());
         locationHistoryView.setItems(FXCollections.observableArrayList(history));
@@ -170,29 +161,45 @@ private void openDetailsWindow(int incidentId) {
         displayLocationHistory(selectedIncident);
     }
 
-    @FXML
-    private void handleNewIncidentClick() {
-        openModalForm("/com/emergency/NewIncidentForm.fxml", "Create New Incident");
+    private void openDetailsWindow(int incidentId) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/emergency/IncidentDetailsView.fxml"));
+            Parent root = loader.load();
+            IncidentDetailsController controller = loader.getController();
+            controller.loadIncidentData(incidentId);
+            Stage stage = new Stage();
+            stage.setTitle("Incident Details - ID: " + incidentId);
+            stage.initModality(Modality.NONE);
+            Scene scene = new Scene(root);
+             try { // Apply theme
+                 scene.getStylesheets().add(addUnitButton.getScene().getStylesheets().get(0));
+             } catch (Exception e) { System.err.println("Could not apply stylesheet: " + e.getMessage()); }
+            stage.setScene(scene);
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Could not open details window.");
+        }
     }
 
-    @FXML
-    private void handleAddUnitClick() {
-        openModalForm("/com/emergency/NewUnitForm.fxml", "Add New Dispatch Unit");
-    }
+    @FXML private void handleNewIncidentClick() { openModalForm("/com/emergency/NewIncidentForm.fxml", "Create New Incident"); }
+    @FXML private void handleAddUnitClick() { openModalForm("/com/emergency/NewUnitForm.fxml", "Add New Dispatch Unit"); }
 
-    @FXML
-    private void handleDispatchClick() {
+    @FXML private void handleDispatchClick() {
         ActiveDispatch selectedIncident = activeIncidentsTable.getSelectionModel().getSelectedItem();
         Unit selectedUnit = availableUnitsTable.getSelectionModel().getSelectedItem();
         if (selectedIncident == null || selectedUnit == null) {
             showAlert(Alert.AlertType.WARNING, "Please select an incident AND an available unit.");
             return;
         }
+        if (!"Available".equalsIgnoreCase(selectedUnit.getStatus())) {
+             showAlert(Alert.AlertType.WARNING, "Selected unit is not available for dispatch.");
+             return;
+        }
         incidentDAO.dispatchUnitToIncident(selectedIncident.getIncidentId(), selectedUnit.getUnitId());
     }
 
-    @FXML
-    private void handleCloseIncidentClick() {
+    @FXML private void handleCloseIncidentClick() {
         ActiveDispatch selectedIncident = activeIncidentsTable.getSelectionModel().getSelectedItem();
         if (selectedIncident == null) {
             showAlert(Alert.AlertType.WARNING, "Please select an incident to close.");
@@ -201,8 +208,7 @@ private void openDetailsWindow(int incidentId) {
         incidentDAO.closeIncident(selectedIncident.getIncidentId());
     }
 
-    @FXML
-    private void handleSetOnSceneClick() {
+    @FXML private void handleSetOnSceneClick() {
         Unit selectedUnit = availableUnitsTable.getSelectionModel().getSelectedItem();
         if (selectedUnit != null) {
             unitDAO.updateUnitStatus(selectedUnit.getUnitId(), "On Scene");
@@ -211,8 +217,7 @@ private void openDetailsWindow(int incidentId) {
         }
     }
 
-    @FXML
-    private void handleSetClearClick() {
+    @FXML private void handleSetClearClick() {
         Unit selectedUnit = availableUnitsTable.getSelectionModel().getSelectedItem();
         if (selectedUnit != null) {
             unitDAO.updateUnitStatus(selectedUnit.getUnitId(), "Available");
@@ -227,7 +232,9 @@ private void openDetailsWindow(int incidentId) {
     }
 
     private void loadAllUnits() {
+        // Decide if you want ALL units or only AVAILABLE ones in this table
         List<Unit> unitsFromDB = unitDAO.getAllUnits();
+        // List<Unit> unitsFromDB = unitDAO.getAvailableUnits(); // Use this if you want only available units
         availableUnitsTable.setItems(FXCollections.observableArrayList(unitsFromDB));
     }
 
@@ -238,7 +245,11 @@ private void openDetailsWindow(int incidentId) {
             Stage formStage = new Stage();
             formStage.setTitle(title);
             formStage.initModality(Modality.APPLICATION_MODAL);
-            formStage.setScene(new Scene(root));
+            Scene scene = new Scene(root);
+            try { // Apply theme
+                scene.getStylesheets().add(addUnitButton.getScene().getStylesheets().get(0));
+            } catch (Exception e) { System.err.println("Could not apply stylesheet: " + e.getMessage()); }
+            formStage.setScene(scene);
             formStage.showAndWait();
         } catch (IOException e) {
             e.printStackTrace();
@@ -246,7 +257,9 @@ private void openDetailsWindow(int incidentId) {
     }
 
     private void showAlert(Alert.AlertType alertType, String message) {
-        Alert alert = new Alert(alertType, message);
-        alert.show();
+        Alert alert = new Alert(alertType);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.show(); // Use show() for non-blocking alerts
     }
 }
