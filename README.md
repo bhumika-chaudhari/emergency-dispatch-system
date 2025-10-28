@@ -42,7 +42,7 @@
 
 | Main Dashboard | Incident Details | New Incident Form |
 | :---: | :---: | :---: |
-| ![Dashboard Screenshot](link_to_your_screenshot.png) | ![Details Screenshot](link_to_your_screenshot.png) | ![Form Screenshot](link_to_your_screenshot.png) |
+| ![Dashboard Screenshot](images/dashboard.png) | ![Details Screenshot](images/details.png) | ![Form Screenshot](images/forms.png) |
 
 ---
 
