@@ -3,7 +3,9 @@ package com.emergency.dao;
 import com.emergency.model.ActiveDispatch;
 import com.emergency.model.Caller;
 import com.emergency.model.Incident;
+import com.emergency.model.IncidentStatusLog;
 import com.emergency.model.LocationHistory;
+import com.emergency.model.UnitStatusLog;
 import com.emergency.model.Witness;
 import com.emergency.util.DatabaseConnector;
 import java.sql.*;
@@ -222,7 +224,30 @@ public List<Witness> getWitnesses(int incidentId) {
     }
     return witnesses;
 }
-
+// Add this method inside IncidentDAO.java
+public List<IncidentStatusLog> getIncidentStatusLogs(int incidentId) {
+    List<IncidentStatusLog> logs = new ArrayList<>();
+    // Updated query to no longer select 'comment'
+    String sql = "SELECT old_status, new_status, timestamp " +
+                 "FROM Incident_Status_Log WHERE incident_id = ? ORDER BY timestamp DESC";
+    
+    try (Connection conn = DatabaseConnector.getConnection();
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        pstmt.setInt(1, incidentId);
+        ResultSet rs = pstmt.executeQuery();
+        while (rs.next()) {
+            // Updated constructor call to remove 'comment'
+            logs.add(new IncidentStatusLog(
+                rs.getString("old_status"),
+                rs.getString("new_status"),
+                rs.getTimestamp("timestamp")
+            ));
+        }
+    } catch (SQLException e) { 
+        e.printStackTrace(); 
+    }
+    return logs;
+}
 // Add this new method
 public void deleteWitness(int witnessId) {
     String sql = "{CALL DeleteWitness(?)}";
@@ -233,5 +258,29 @@ public void deleteWitness(int witnessId) {
     } catch (SQLException e) {
         e.printStackTrace();
     }
+}
+public List<UnitStatusLog> getUnitStatusLogs(int incidentId) {
+    List<UnitStatusLog> logs = new ArrayList<>();
+    // This query finds all unit logs for units that were dispatched to this incident
+    String sql = "SELECT u.unit_name, usl.old_status, usl.new_status, usl.comment, usl.timestamp " +
+                 "FROM Unit_Status_Log usl " +
+                 "JOIN Emergency_Units u ON usl.unit_id = u.unit_id " +
+                 "JOIN Dispatches d ON u.unit_id = d.unit_id " +
+                 "WHERE d.incident_id = ? " +
+                 "ORDER BY usl.timestamp DESC";
+    
+    try (Connection conn = DatabaseConnector.getConnection();
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        pstmt.setInt(1, incidentId);
+        ResultSet rs = pstmt.executeQuery();
+        while (rs.next()) {
+            logs.add(new UnitStatusLog(rs.getString("unit_name"),
+                rs.getString("old_status"),
+                rs.getString("new_status"),
+                rs.getTimestamp("timestamp")
+            ));
+        }
+    } catch (SQLException e) { e.printStackTrace(); }
+    return logs;
 }
 }

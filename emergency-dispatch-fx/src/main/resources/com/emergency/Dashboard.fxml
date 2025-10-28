@@ -47,15 +47,14 @@
                                 <TableColumn fx:id="assignedUnitColumn" prefWidth="150.0" text="Assigned Unit"/>
                             </columns>
                         </TableView>
-                        <HBox alignment="CENTER_LEFT" spacing="10.0">
-                            <padding>
-                                <Insets top="5" right="0" bottom="0" left="0"/>
-                            </padding>
-                            <children>
-                                <Button fx:id="newIncidentButton" onAction="#handleNewIncidentClick" text="New Incident" prefHeight="35.0"/>
-                                <Button fx:id="closeIncidentButton" onAction="#handleCloseIncidentClick" text="Close Incident" prefHeight="35.0"/>
-                            </children>
-                        </HBox>
+                       <HBox alignment="CENTER_LEFT" spacing="10.0">
+   <children>
+      <Button fx:id="newIncidentButton" onAction="#handleNewIncidentClick" prefHeight="35.0" text="New Incident" />
+      <Button fx:id="closeIncidentButton" onAction="#handleCloseIncidentClick" prefHeight="35.0" text="Close Incident" />
+      
+      <Button fx:id="viewLogsButton" onAction="#handleViewLogsClick" prefHeight="35.0" text="View Logs" />
+   </children>
+</HBox>
                     </children>
                 </VBox>
 

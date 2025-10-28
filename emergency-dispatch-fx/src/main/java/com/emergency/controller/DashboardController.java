@@ -35,6 +35,7 @@ public class DashboardController {
     @FXML private TableColumn<ActiveDispatch, String> assignedUnitColumn;
     @FXML private TableColumn<ActiveDispatch, String> incidentStatusColumn;
     @FXML private TableView<Unit> availableUnitsTable;
+    @FXML private Button viewLogsButton;
     @FXML private TableColumn<Unit, String> unitNameColumn;
     @FXML private TableColumn<Unit, String> unitTypeColumn;
     @FXML private TableColumn<Unit, String> unitStatusColumn;
@@ -53,11 +54,14 @@ public class DashboardController {
     private IncidentDAO incidentDAO = new IncidentDAO();
     private UnitDAO unitDAO = new UnitDAO();
 
+    // --- NEW: Field to store the last clicked incident ---
+    private ActiveDispatch currentlySelectedIncident;
+
     @FXML
     public void initialize() {
         setupTableColumns();
         setupRowFactories();
-        setupEventListeners();
+        setupEventListeners(); // This method is now updated
         setupActionColumn();
         loadInitialData();
         setupPolling();
@@ -91,23 +95,60 @@ public class DashboardController {
         });
     }
 
+    // --- UPDATED: This listener now stores the selection ---
     private void setupEventListeners() {
         activeIncidentsTable.getSelectionModel().selectedItemProperty().addListener(
             (obs, oldSelection, newSelection) -> {
                 if (newSelection != null) {
+                    // Store the selected incident
+                    this.currentlySelectedIncident = newSelection;
                     displayLocationHistory(newSelection);
                 } else {
-                    locationHistoryView.getItems().clear();
+                    // Clear the stored incident and the history
+                    this.currentlySelectedIncident = null;
+                    if (locationHistoryView != null) { // Add null check for safety
+                        locationHistoryView.getItems().clear();
+                    }
                 }
             }
         );
+    }
+
+    @FXML
+    private void handleViewLogsClick() {
+        // UPDATED: Use the stored incident
+        if (currentlySelectedIncident == null) {
+            showAlert(Alert.AlertType.WARNING, "Please select an incident to view its logs.");
+            return;
+        }
+
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/emergency/LogsView.fxml"));
+            Parent root = loader.load();
+            LogsViewController controller = loader.getController();
+            controller.loadLogs(currentlySelectedIncident.getIncidentId()); // Use the stored ID
+            Stage stage = new Stage();
+            stage.setTitle("Logs for Incident #" + currentlySelectedIncident.getIncidentId());
+            stage.initModality(Modality.NONE);
+            Scene scene = new Scene(root);
+            try {
+                scene.getStylesheets().add(addUnitButton.getScene().getStylesheets().get(0));
+            } catch (Exception e) {
+                System.err.println("Could not apply stylesheet: " + e.getMessage());
+            }
+            stage.setScene(scene);
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Could not open logs window.");
+        }
     }
 
     private void setupActionColumn() {
         actionColumn.setCellFactory(param -> new TableCell<>() {
             private final Button detailsButton = new Button("Details");
             {
-                detailsButton.getStyleClass().addAll("button-xs", "flat"); // Optional styling
+                detailsButton.getStyleClass().addAll("button-xs", "flat");
                 detailsButton.setOnAction(event -> {
                     ActiveDispatch incident = getTableView().getItems().get(getIndex());
                     if (incident != null) {
@@ -132,6 +173,13 @@ public class DashboardController {
         Timeline poller = new Timeline(new KeyFrame(Duration.seconds(5), event -> {
             loadDispatchData();
             loadAllUnits();
+            // Re-select the item after refresh
+            if (currentlySelectedIncident != null) {
+                activeIncidentsTable.getItems().stream()
+                    .filter(item -> item.getIncidentId() == currentlySelectedIncident.getIncidentId())
+                    .findFirst()
+                    .ifPresent(item -> activeIncidentsTable.getSelectionModel().select(item));
+            }
         }));
         poller.setCycleCount(Timeline.INDEFINITE);
         poller.play();
@@ -139,26 +187,28 @@ public class DashboardController {
 
     private void setupButtonIcons() {
         FontAwesomeIconView plusIcon = new FontAwesomeIconView(FontAwesomeIcon.PLUS_SQUARE);
-        // plusIcon.setFill(javafx.scene.paint.Color.WHITE); // Uncomment if needed
+        // plusIcon.setFill(javafx.scene.paint.Color.WHITE); // Uncomment if theme requires it
         newIncidentButton.setGraphic(plusIcon);
     }
 
     private void displayLocationHistory(ActiveDispatch summary) {
-        List<LocationHistory> history = incidentDAO.getLocationHistory(summary.getIncidentId());
-        locationHistoryView.setItems(FXCollections.observableArrayList(history));
+        if (locationHistoryView != null) { // Add null check for safety
+            List<LocationHistory> history = incidentDAO.getLocationHistory(summary.getIncidentId());
+            locationHistoryView.setItems(FXCollections.observableArrayList(history));
+        }
     }
 
     @FXML
     private void handleAddLocationNoteClick() {
-        ActiveDispatch selectedIncident = activeIncidentsTable.getSelectionModel().getSelectedItem();
+        // UPDATED: Use the stored incident
         String note = newLocationNoteField.getText();
-        if (selectedIncident == null || note == null || note.trim().isEmpty()) {
+        if (currentlySelectedIncident == null || note == null || note.trim().isEmpty()) {
             showAlert(Alert.AlertType.WARNING, "Please select an incident and enter a note.");
             return;
         }
-        incidentDAO.addLocationHistory(selectedIncident.getIncidentId(), note);
+        incidentDAO.addLocationHistory(currentlySelectedIncident.getIncidentId(), note);
         newLocationNoteField.clear();
-        displayLocationHistory(selectedIncident);
+        displayLocationHistory(currentlySelectedIncident);
     }
 
     private void openDetailsWindow(int incidentId) {
@@ -171,9 +221,9 @@ public class DashboardController {
             stage.setTitle("Incident Details - ID: " + incidentId);
             stage.initModality(Modality.NONE);
             Scene scene = new Scene(root);
-             try { // Apply theme
+             try {
                  scene.getStylesheets().add(addUnitButton.getScene().getStylesheets().get(0));
-             } catch (Exception e) { System.err.println("Could not apply stylesheet: " + e.getMessage()); }
+             } catch (Exception e) { System.err.println("Could not apply stylesheet: ".concat(e.getMessage())); }
             stage.setScene(scene);
             stage.show();
         } catch (IOException e) {
@@ -186,9 +236,9 @@ public class DashboardController {
     @FXML private void handleAddUnitClick() { openModalForm("/com/emergency/NewUnitForm.fxml", "Add New Dispatch Unit"); }
 
     @FXML private void handleDispatchClick() {
-        ActiveDispatch selectedIncident = activeIncidentsTable.getSelectionModel().getSelectedItem();
+        // UPDATED: Use the stored incident
         Unit selectedUnit = availableUnitsTable.getSelectionModel().getSelectedItem();
-        if (selectedIncident == null || selectedUnit == null) {
+        if (currentlySelectedIncident == null || selectedUnit == null) {
             showAlert(Alert.AlertType.WARNING, "Please select an incident AND an available unit.");
             return;
         }
@@ -196,16 +246,16 @@ public class DashboardController {
              showAlert(Alert.AlertType.WARNING, "Selected unit is not available for dispatch.");
              return;
         }
-        incidentDAO.dispatchUnitToIncident(selectedIncident.getIncidentId(), selectedUnit.getUnitId());
+        incidentDAO.dispatchUnitToIncident(currentlySelectedIncident.getIncidentId(), selectedUnit.getUnitId());
     }
 
     @FXML private void handleCloseIncidentClick() {
-        ActiveDispatch selectedIncident = activeIncidentsTable.getSelectionModel().getSelectedItem();
-        if (selectedIncident == null) {
+        // UPDATED: Use the stored incident
+        if (currentlySelectedIncident == null) {
             showAlert(Alert.AlertType.WARNING, "Please select an incident to close.");
             return;
         }
-        incidentDAO.closeIncident(selectedIncident.getIncidentId());
+        incidentDAO.closeIncident(currentlySelectedIncident.getIncidentId());
     }
 
     @FXML private void handleSetOnSceneClick() {
@@ -232,9 +282,7 @@ public class DashboardController {
     }
 
     private void loadAllUnits() {
-        // Decide if you want ALL units or only AVAILABLE ones in this table
         List<Unit> unitsFromDB = unitDAO.getAllUnits();
-        // List<Unit> unitsFromDB = unitDAO.getAvailableUnits(); // Use this if you want only available units
         availableUnitsTable.setItems(FXCollections.observableArrayList(unitsFromDB));
     }
 
@@ -260,6 +308,6 @@ public class DashboardController {
         Alert alert = new Alert(alertType);
         alert.setHeaderText(null);
         alert.setContentText(message);
-        alert.show(); // Use show() for non-blocking alerts
+        alert.show();
     }
 }
