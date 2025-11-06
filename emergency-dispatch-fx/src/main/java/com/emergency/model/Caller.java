@@ -5,15 +5,12 @@ public class Caller {
     private String firstName;
     private String lastName;
     private String phoneNumber;
-    private String email;
 
-    // --- Constructor ---
-    public Caller(int callerId, String firstName, String lastName, String phoneNumber, String email) {
+    public Caller(int callerId, String firstName, String lastName, String phoneNumber) {
         this.callerId = callerId;
         this.firstName = firstName;
         this.lastName = lastName;
         this.phoneNumber = phoneNumber;
-        this.email = email;
     }
 
     // --- Getters ---
@@ -33,9 +30,7 @@ public class Caller {
         return phoneNumber;
     }
 
-    public String getEmail() {
-        return email;
-    }
+    
 
     // --- Setters ---
     public void setCallerId(int callerId) {
@@ -54,7 +49,5 @@ public class Caller {
         this.phoneNumber = phoneNumber;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+    
 }

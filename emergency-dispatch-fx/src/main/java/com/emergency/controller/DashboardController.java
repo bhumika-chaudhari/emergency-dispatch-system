@@ -54,14 +54,13 @@ public class DashboardController {
     private IncidentDAO incidentDAO = new IncidentDAO();
     private UnitDAO unitDAO = new UnitDAO();
 
-    // --- NEW: Field to store the last clicked incident ---
     private ActiveDispatch currentlySelectedIncident;
 
     @FXML
     public void initialize() {
         setupTableColumns();
         setupRowFactories();
-        setupEventListeners(); // This method is now updated
+        setupEventListeners(); 
         setupActionColumn();
         loadInitialData();
         setupPolling();
@@ -95,18 +94,15 @@ public class DashboardController {
         });
     }
 
-    // --- UPDATED: This listener now stores the selection ---
     private void setupEventListeners() {
         activeIncidentsTable.getSelectionModel().selectedItemProperty().addListener(
             (obs, oldSelection, newSelection) -> {
                 if (newSelection != null) {
-                    // Store the selected incident
                     this.currentlySelectedIncident = newSelection;
                     displayLocationHistory(newSelection);
                 } else {
-                    // Clear the stored incident and the history
                     this.currentlySelectedIncident = null;
-                    if (locationHistoryView != null) { // Add null check for safety
+                    if (locationHistoryView != null) { 
                         locationHistoryView.getItems().clear();
                     }
                 }

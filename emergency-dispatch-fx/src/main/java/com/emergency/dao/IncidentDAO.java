@@ -14,53 +14,37 @@ import java.util.List;
 
 public class IncidentDAO {
 
-   // In: com/emergency/dao/IncidentDAO.java
-// Replace your getActiveDispatches method with this
-public List<ActiveDispatch> getActiveDispatches() {
+   
+  public List<ActiveDispatch> getActiveDispatches() {
     List<ActiveDispatch> dispatches = new ArrayList<>();
-    // Updated SQL query to include the unit_name
-    String sql = "SELECT i.incident_id, i.type AS incident_type, i.location_text, i.priority, u.unit_name FROM Incidents i LEFT JOIN Dispatches d ON i.incident_id = d.incident_id LEFT JOIN Emergency_Units u ON d.unit_id = u.unit_id WHERE i.status NOT IN ('Closed')";
+    String sql = "SELECT incident_id, incident_type, location_text, priority, " +
+                 "unit_name, unit_type, incident_status, dispatch_status " +
+                 "FROM vw_activedispatches";
 
     try (Connection conn = DatabaseConnector.getConnection();
-         PreparedStatement pstmt = conn.prepareStatement(sql);
-         ResultSet rs = pstmt.executeQuery()) {
+         PreparedStatement ps = conn.prepareStatement(sql);
+         ResultSet rs = ps.executeQuery()) {
 
         while (rs.next()) {
             dispatches.add(new ActiveDispatch(
                 rs.getInt("incident_id"),
                 rs.getString("incident_type"),
-                rs.getString("location_text"), // This should now work correctly
+                rs.getString("location_text"),
                 rs.getString("priority"),
-                rs.getString("unit_name") // <-- ADD THIS
+                rs.getString("unit_name"),
+                rs.getString("unit_type"),
+                rs.getString("incident_status"),
+                rs.getString("dispatch_status")
             ));
         }
+
     } catch (SQLException e) {
         e.printStackTrace();
     }
     return dispatches;
 }
 
-    public Incident getIncidentDetailsById(int incidentId) {
-        String sql = "SELECT * FROM Incidents WHERE incident_id = ?";
-        Incident incident = null;
-        try (Connection conn = DatabaseConnector.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, incidentId);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                incident = new Incident();
-                incident.setId(rs.getInt("incident_id"));
-                incident.setType(rs.getString("type"));
-                incident.setDescription(rs.getString("description"));
-                incident.setLocationText(rs.getString("location_text"));
-                incident.setPriority(rs.getString("priority"));
-                incident.setSeverityLevel(rs.getInt("severity_level"));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return incident;
-    }
+
 // In IncidentDAO.java
 public boolean addWitness(int incidentId, String firstName, String lastName, String phone, String statement) {
     String sql = "{CALL AddWitness(?, ?, ?, ?, ?)}";
@@ -84,15 +68,47 @@ public boolean addWitness(int incidentId, String firstName, String lastName, Str
     }
 }
     public void closeIncident(int incidentId) {
-        String sql = "{CALL CloseIncident(?)}";
-        try (Connection conn = DatabaseConnector.getConnection();
-             CallableStatement cstmt = conn.prepareCall(sql)) {
-            cstmt.setInt(1, incidentId);
-            cstmt.execute();
-        } catch (SQLException e) {
-            e.printStackTrace();
+    String sql = "UPDATE Incidents SET status='Closed' WHERE incident_id=?";
+    try (Connection conn = DatabaseConnector.getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql)) {
+
+        // 1️⃣ Close the incident
+        ps.setInt(1, incidentId);
+        ps.executeUpdate();
+
+        // 2️⃣ Mark dispatches as Cleared
+        String clearDispatchesSql = """
+            UPDATE dispatches
+            SET status = 'Cleared',
+                clear_time = NOW()
+            WHERE incident_id = ?
+              AND status IN ('Enroute', 'On Scene')
+        """;
+        try (PreparedStatement ps2 = conn.prepareStatement(clearDispatchesSql)) {
+            ps2.setInt(1, incidentId);
+            ps2.executeUpdate();
         }
+
+        // 3️⃣ Set units back to Available
+        String updateUnitsSql = """
+            UPDATE Emergency_Units
+            SET status = 'Available'
+            WHERE unit_id IN (
+                SELECT unit_id
+                FROM dispatches
+                WHERE incident_id = ?
+            )
+        """;
+        try (PreparedStatement ps3 = conn.prepareStatement(updateUnitsSql)) {
+            ps3.setInt(1, incidentId);
+            ps3.executeUpdate();
+        }
+
+    } catch (SQLException e) {
+        e.printStackTrace();
     }
+}
+
 // Add these two new methods inside your IncidentDAO class
 
 public List<LocationHistory> getLocationHistory(int incidentId) {
@@ -189,15 +205,14 @@ public int createNewIncident(String firstName, String lastName, String phone, St
                 rs.getInt("caller_id"),
                 rs.getString("first_name"),
                 rs.getString("last_name"),
-                rs.getString("phone_number"),
-                rs.getString("email")
+                rs.getString("phone_number")
             );
         }
     } catch (SQLException e) {
         e.printStackTrace();
     }
     return caller;
-}// In IncidentDAO.java
+}
 
 // Update the getWitnesses method
 public List<Witness> getWitnesses(int incidentId) {
@@ -227,7 +242,6 @@ public List<Witness> getWitnesses(int incidentId) {
 // Add this method inside IncidentDAO.java
 public List<IncidentStatusLog> getIncidentStatusLogs(int incidentId) {
     List<IncidentStatusLog> logs = new ArrayList<>();
-    // Updated query to no longer select 'comment'
     String sql = "SELECT old_status, new_status, timestamp " +
                  "FROM Incident_Status_Log WHERE incident_id = ? ORDER BY timestamp DESC";
     
@@ -259,10 +273,12 @@ public void deleteWitness(int witnessId) {
         e.printStackTrace();
     }
 }
+// In IncidentDAO.java
 public List<UnitStatusLog> getUnitStatusLogs(int incidentId) {
     List<UnitStatusLog> logs = new ArrayList<>();
-    // This query finds all unit logs for units that were dispatched to this incident
-    String sql = "SELECT u.unit_name, usl.old_status, usl.new_status, usl.comment, usl.timestamp " +
+    
+    // UPDATED SQL: Removed 'usl.comment' from the SELECT list
+    String sql = "SELECT u.unit_name, usl.old_status, usl.new_status, usl.timestamp " +
                  "FROM Unit_Status_Log usl " +
                  "JOIN Emergency_Units u ON usl.unit_id = u.unit_id " +
                  "JOIN Dispatches d ON u.unit_id = d.unit_id " +
@@ -271,16 +287,24 @@ public List<UnitStatusLog> getUnitStatusLogs(int incidentId) {
     
     try (Connection conn = DatabaseConnector.getConnection();
          PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        
         pstmt.setInt(1, incidentId);
         ResultSet rs = pstmt.executeQuery();
+        
         while (rs.next()) {
-            logs.add(new UnitStatusLog(rs.getString("unit_name"),
+            // The constructor call is now correct (4 arguments)
+            logs.add(new UnitStatusLog(
+                rs.getString("unit_name"),
                 rs.getString("old_status"),
                 rs.getString("new_status"),
                 rs.getTimestamp("timestamp")
             ));
         }
-    } catch (SQLException e) { e.printStackTrace(); }
+    } catch (SQLException e) { 
+        e.printStackTrace(); 
+    }
     return logs;
 }
+
+public Incident getIncidentDetailsById(int incidentId) { String sql = "SELECT * FROM Incidents WHERE incident_id = ?"; Incident incident = null; try (Connection conn = DatabaseConnector.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) { pstmt.setInt(1, incidentId); ResultSet rs = pstmt.executeQuery(); if (rs.next()) { incident = new Incident(); incident.setId(rs.getInt("incident_id")); incident.setType(rs.getString("type")); incident.setDescription(rs.getString("description")); incident.setLocationText(rs.getString("location_text")); incident.setStatus(rs.getString("status")); incident.setPriority(rs.getString("priority")); incident.setSeverityLevel(rs.getInt("severity_level")); } } catch (SQLException e) { e.printStackTrace(); } return incident; }
 }

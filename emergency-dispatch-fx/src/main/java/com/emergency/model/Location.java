@@ -17,7 +17,6 @@ public class Location {
         return name;
     }
 
-    // This method is called by the ComboBox to display the location name
     @Override
     public String toString() {
         return name;

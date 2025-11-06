@@ -1,36 +1,34 @@
 package com.emergency.model;
 
-import javafx.beans.property.SimpleIntegerProperty;
-import javafx.beans.property.SimpleStringProperty;
-
 public class ActiveDispatch {
-    private final SimpleIntegerProperty incidentId;
-    private final SimpleStringProperty incidentType;
-    private final SimpleStringProperty locationText;
-    private final SimpleStringProperty priority;
-    private final SimpleStringProperty assignedUnit;
+    private int incidentId;
+    private String incidentType;
+    private String locationText;
+    private String priority;
+    private String assignedUnit; 
+    private String unitType;      
+    private String status;        
+    private String dispatchStatus;
 
-    public ActiveDispatch(int id, String type, String location, String priority, String unitName) {
-        this.incidentId = new SimpleIntegerProperty(id);
-        this.incidentType = new SimpleStringProperty(type);
-        this.locationText = new SimpleStringProperty(location);
-        this.priority = new SimpleStringProperty(priority);
-        this.assignedUnit = new SimpleStringProperty(unitName);
+    public ActiveDispatch(int incidentId, String incidentType, String locationText, String priority,
+                          String assignedUnit, String unitType, String status, String dispatchStatus) {
+        this.incidentId = incidentId;
+        this.incidentType = incidentType;
+        this.locationText = locationText;
+        this.priority = priority;
+        this.assignedUnit = assignedUnit;
+        this.unitType = unitType;
+        this.status = status;
+        this.dispatchStatus = dispatchStatus;
     }
 
-    // --- CORRECT GETTERS AND PROPERTY ACCESSORS ---
-    public int getIncidentId() { return incidentId.get(); }
-    public SimpleIntegerProperty incidentIdProperty() { return incidentId; }
-
-    public String getIncidentType() { return incidentType.get(); }
-    public SimpleStringProperty incidentTypeProperty() { return incidentType; }
-
-    public String getLocationText() { return locationText.get(); }
-    public SimpleStringProperty locationTextProperty() { return locationText; }
-
-    public String getPriority() { return priority.get(); }
-    public SimpleStringProperty priorityProperty() { return priority; }
-
-    public String getAssignedUnit() { return assignedUnit.get(); }
-    public SimpleStringProperty assignedUnitProperty() { return assignedUnit; }
+    // Getters
+    public int getIncidentId() { return incidentId; }
+    public String getIncidentType() { return incidentType; }
+    public String getLocationText() { return locationText; }
+    public String getPriority() { return priority; }
+    public String getAssignedUnit() { return assignedUnit; }
+    public String getUnitType() { return unitType; }
+    public String getStatus() { return status; }  
+    public String getDispatchStatus() { return dispatchStatus; }
 }

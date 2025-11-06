@@ -25,12 +25,11 @@ import java.util.List;
 
 public class IncidentDetailsController {
 
-    // --- FXML Variables ---
     @FXML private Label incidentIdLabel;
     @FXML private Label typeLabel;
-    @FXML private Label locationLabel;     // <-- ADDED
-    @FXML private Label priorityLabel;     // <-- ADDED
-    @FXML private Label severityLabel;     // <-- ADDED
+    @FXML private Label locationLabel;    
+    @FXML private Label priorityLabel;     
+    @FXML private Label severityLabel;     
     @FXML private Label callerNameLabel;
     @FXML private Label callerPhoneLabel;
     @FXML private ListView<Witness> witnessListView;
@@ -42,13 +41,12 @@ public class IncidentDetailsController {
 
     @FXML
     public void initialize() {
-        // Setup the custom cell factory for the witness list view
         witnessListView.setCellFactory(lv -> new ListCell<Witness>() {
             private HBox hbox = new HBox(10);
             private Text witnessInfo = new Text();
             private Button deleteButton = new Button("Delete");
 
-            { // Initializer block
+            { 
                 hbox.setAlignment(Pos.CENTER_LEFT);
                 HBox spacer = new HBox();
                 HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -83,20 +81,17 @@ public class IncidentDetailsController {
         });
     }
 
-    // Load data when the window is opened
     public void loadIncidentData(int incidentId) {
         this.currentIncidentId = incidentId;
 
-        // Load incident details and populate all relevant labels
         Incident incident = incidentDAO.getIncidentDetailsById(incidentId);
         if (incident != null) {
             incidentIdLabel.setText(String.valueOf(incident.getId()));
             typeLabel.setText(incident.getType());
-            locationLabel.setText(incident.getLocationText()); // <-- POPULATE
-            priorityLabel.setText(incident.getPriority());   // <-- POPULATE
-            severityLabel.setText(String.valueOf(incident.getSeverityLevel())); // <-- POPULATE
+            locationLabel.setText(incident.getLocationText()); 
+            priorityLabel.setText(incident.getPriority());   
+            severityLabel.setText(String.valueOf(incident.getSeverityLevel())); 
         } else {
-            // Clear fields if incident not found
             incidentIdLabel.setText("-");
             typeLabel.setText("-");
             locationLabel.setText("-");
@@ -104,23 +99,19 @@ public class IncidentDetailsController {
             severityLabel.setText("-");
         }
 
-        // Load caller details
         Caller caller = incidentDAO.getCallerDetails(incidentId);
         if (caller != null) {
             callerNameLabel.setText(caller.getFirstName() + " " + caller.getLastName());
             callerPhoneLabel.setText(caller.getPhoneNumber());
           
         } else {
-            // Clear fields if caller not found
             callerNameLabel.setText("-");
             callerPhoneLabel.setText("-");
         }
 
-        // Load witnesses
         loadWitnesses();
     }
 
-    // Handle adding a new witness
     @FXML
     private void handleAddWitnessClick() {
         try {
@@ -146,11 +137,10 @@ public class IncidentDetailsController {
 
         } catch (IOException e) {
             e.printStackTrace();
-            // Consider adding showAlert here
+           
         }
     }
 
-    // Helper to load/refresh the witness list
     private void loadWitnesses() {
         if (this.currentIncidentId > 0) {
             List<Witness> witnesses = incidentDAO.getWitnesses(this.currentIncidentId);
@@ -160,14 +150,5 @@ public class IncidentDetailsController {
         }
     }
 
-    // Helper method for showing alerts (can be added if needed)
-    /*
-    private void showAlert(Alert.AlertType alertType, String title, String message) {
-        Alert alert = new Alert(alertType);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
-    }
-    */
+   
 }

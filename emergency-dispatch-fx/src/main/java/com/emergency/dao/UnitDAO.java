@@ -24,17 +24,37 @@ public class UnitDAO {
         }
     }
 
-    public void updateUnitStatus(int unitId, String newStatus) {
-        String sql = "{CALL UpdateUnitStatus(?, ?)}";
-        try (Connection conn = DatabaseConnector.getConnection();
-             CallableStatement cstmt = conn.prepareCall(sql)) {
-            cstmt.setInt(1, unitId);
-            cstmt.setString(2, newStatus);
-            cstmt.execute();
-        } catch (SQLException e) {
-            e.printStackTrace();
+  public void updateUnitStatus(int unitId, String newStatus) {
+    String sql = "{CALL UpdateUnitStatus(?, ?)}";
+    try (Connection conn = DatabaseConnector.getConnection();
+         CallableStatement cstmt = conn.prepareCall(sql)) {
+
+        // Update the emergency unit
+        cstmt.setInt(1, unitId);
+        cstmt.setString(2, newStatus);
+        cstmt.execute();
+
+        // Now sync the dispatch
+        String dispatchSql = null;
+
+        if (newStatus.equalsIgnoreCase("On Scene")) {
+            dispatchSql = "UPDATE dispatches SET status='On Scene', arrival_time=NOW() WHERE unit_id=? AND status='Enroute'";
+        } else if (newStatus.equalsIgnoreCase("Available")) {
+            dispatchSql = "UPDATE dispatches SET status='Cleared', clear_time=NOW() WHERE unit_id=? AND status IN ('Enroute','On Scene')";
         }
+
+        if (dispatchSql != null) {
+            try (PreparedStatement ps = conn.prepareStatement(dispatchSql)) {
+                ps.setInt(1, unitId);
+                ps.executeUpdate();
+            }
+        }
+
+    } catch (SQLException e) {
+        e.printStackTrace();
     }
+}
+
 
     public List<Location> getAllLocations() {
         List<Location> locations = new ArrayList<>();

@@ -14,7 +14,6 @@ public class LocationHistory {
 
     @Override
     public String toString() {
-        // This formats how each entry will look in the list
         String formattedDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(createdAt);
         return "[" + formattedDate + "] " + note;
     }
